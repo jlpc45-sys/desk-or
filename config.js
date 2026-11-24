@@ -4,8 +4,8 @@
    Tu peux aussi les modifier ici à la main (garde les guillemets et virgules).
    ================================================================ */
 window.COCKPIT_CONFIG = {
-  id: "gold",                    // identifiant interne (sauvegardes du navigateur)
-  name: "captain",            // nom affiché en haut à gauche (« captain » = logo Captain Trading)
+  id: "jdl",                      // identifiant interne (sauvegardes du navigateur)
+  name: "Juju et Dodo",       // nom affiché en haut à gauche, à côté du lingot JDL-Desk
   tagline: "Gold · Desk",       // sous-titre sous le nom
   accent: "#D9A93C",             // couleur d'accent (toute l'interface suit) : or
   theme: "dark",                 // affichage au premier lancement : "dark" ou "light"
