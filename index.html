@@ -2515,17 +2515,24 @@ CK.TVS=TVS;
 var TV_COLS=["close","change","SMA20","SMA50","SMA200","Perf.W","Perf.1M","High.3M","Low.3M","ADX"];
 function calcGSR(){var a=S.mk.XAU,b=S.mk.XAG;if(!a||!b||!a.c||!b.c)return;var ch=(a.ch!=null&&b.ch!=null)?((1+a.ch/100)/(1+b.ch/100)-1)*100:null;S.mk.GSR=Object.assign({},S.mk.GSR,{c:a.c/b.c,ch:ch});}
 /* Or, argent et EUR/USD rafraîchis toutes les 15 s (le reste toutes les 2 min) */
+/* Symboles de secours : si TradingView ne renvoie rien pour le symbole principal, on prend le premier équivalent qui répond
+   (et il devient le symbole du graphique). */
+var TVALT={XAU:["TVC:GOLD","FX_IDC:XAUUSD"],XAG:["TVC:SILVER","FX_IDC:XAGUSD","FOREXCOM:XAGUSD"],EURUSD:["FX_IDC:EURUSD","OANDA:EURUSD"],
+  USOIL:["FX:USOIL","NYMEX:CL1!","TVC:UKOIL"],PLAT:["OANDA:XPTUSD","NYMEX:PL1!"]};
+function cands(k){return [TVS[k]].concat(TVALT[k]||[]);}
+function tickers(keys){var o=[];keys.forEach(function(k){cands(k).forEach(function(t){if(o.indexOf(t)<0)o.push(t);});});return o;}
+function pick(by,k){var c=cands(k);for(var i=0;i<c.length;i++){var d=by[c[i]];if(d&&d[0]!=null){if(i>0)TVS[k]=c[i];return d;}}return null;}
 function loadFast(){
   if(document.hidden)return;
-  return fetchJSON(TV_SCAN,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:JSON.stringify({symbols:{tickers:FAST.map(function(k){return TVS[k];})},columns:["close","change"]})})
-    .then(function(j){(j.data||[]).forEach(function(o){FAST.forEach(function(k){if(TVS[k]===o.s)S.mk[k]=Object.assign({},S.mk[k],{c:o.d[0],ch:o.d[1]});});});calcGSR();paintMacroStrip();}).catch(function(){});
+  return fetchJSON(TV_SCAN,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:JSON.stringify({symbols:{tickers:tickers(FAST)},columns:["close","change"]})})
+    .then(function(j){var by={};(j.data||[]).forEach(function(o){by[o.s]=o.d;});FAST.forEach(function(k){var d=pick(by,k);if(d)S.mk[k]=Object.assign({},S.mk[k],{c:d[0],ch:d[1]});});calcGSR();paintMacroStrip();}).catch(function(){});
 }
 CK.loadFast=loadFast;
 function loadMacro(){
   var keys=Object.keys(TVS).filter(function(k){return k!=="GSR";});
-  return fetchJSON(TV_SCAN,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:JSON.stringify({symbols:{tickers:keys.map(function(k){return TVS[k];})},columns:TV_COLS})})
+  return fetchJSON(TV_SCAN,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:JSON.stringify({symbols:{tickers:tickers(keys)},columns:TV_COLS})})
     .then(function(j){var by={};(j.data||[]).forEach(function(o){by[o.s]=o.d;});
-      keys.forEach(function(k){var d=by[TVS[k]];if(!d)return;S.mk[k]={c:d[0],ch:d[1],s20:d[2],s50:d[3],s200:d[4],pw:d[5],pm:d[6],h3:d[7],l3:d[8],adx:d[9]};});
+      keys.forEach(function(k){var d=pick(by,k);if(!d)return;S.mk[k]={c:d[0],ch:d[1],s20:d[2],s50:d[3],s200:d[4],pw:d[5],pm:d[6],h3:d[7],l3:d[8],adx:d[9]};});
       calcGSR();paintMacroStrip();computeFactors();
     }).catch(function(){computeFactors();});
 }
@@ -4342,20 +4349,23 @@ var SCAN="https://scanner.tradingview.com/global/scan";
 var COLS=["close","change","Perf.W","Perf.1M","RSI","ADX","SMA20","SMA50","SMA200","ATR"];
 var GR=[["all","Tous"],["met","Métaux"],["nrj","Énergie"],["agri","Agricoles"],["fx","Forex"]];
 var L=[
-  ["met","OANDA:XAUUSD","XAUUSD","Or",2],["met","OANDA:XAGUSD","XAGUSD","Argent",3],["met","OANDA:XPTUSD","XPTUSD","Platine",2],["met","OANDA:XPDUSD","XPDUSD","Palladium",2],["met","OANDA:XCUUSD","XCUUSD","Cuivre",4],
-  ["nrj","TVC:USOIL","WTI","Pétrole WTI",2],["nrj","TVC:UKOIL","BRENT","Pétrole Brent",2],["nrj","OANDA:NATGASUSD","NATGAS","Gaz naturel",3],
-  ["agri","OANDA:WHEATUSD","WHEAT","Blé",3],["agri","OANDA:CORNUSD","CORN","Maïs",3],["agri","OANDA:SOYBNUSD","SOYBN","Soja",3],["agri","OANDA:SUGARUSD","SUGAR","Sucre",4],
+  ["met","OANDA:XAUUSD|TVC:GOLD","XAUUSD","Or",2],["met","OANDA:XAGUSD|TVC:SILVER|FX_IDC:XAGUSD","XAGUSD","Argent",3],["met","OANDA:XPTUSD|TVC:PLATINUM","XPTUSD","Platine",2],["met","OANDA:XPDUSD|TVC:PALLADIUM","XPDUSD","Palladium",2],["met","OANDA:XCUUSD|COMEX:HG1!|CAPITALCOM:COPPER","XCUUSD","Cuivre",4],
+  ["nrj","FX:USOIL|TVC:USOIL|NYMEX:CL1!","WTI","Pétrole WTI",2],["nrj","FX:UKOIL|TVC:UKOIL|ICEEUR:BRN1!","BRENT","Pétrole Brent",2],["nrj","OANDA:NATGASUSD|NYMEX:NG1!|CAPITALCOM:NATURALGAS","NATGAS","Gaz naturel",3],
+  ["agri","OANDA:WHEATUSD|CBOT:ZW1!|CAPITALCOM:WHEAT","WHEAT","Blé",3],["agri","OANDA:CORNUSD|CBOT:ZC1!|CAPITALCOM:CORN","CORN","Maïs",3],["agri","OANDA:SOYBNUSD|CBOT:ZS1!|CAPITALCOM:SOYBEAN","SOYBN","Soja",3],["agri","OANDA:SUGARUSD|ICEUS:SB1!|CAPITALCOM:SUGAR","SUGAR","Sucre",4],
   ["fx","TVC:DXY","DXY","Indice dollar",3],["fx","FX:EURUSD","EURUSD","Euro / dollar",5],["fx","FX:GBPUSD","GBPUSD","Livre / dollar",5],["fx","FX:USDJPY","USDJPY","Dollar / yen",3],
   ["fx","FX:AUDUSD","AUDUSD","Dollar australien",5],["fx","FX:USDCAD","USDCAD","Dollar / canadien",5],["fx","FX:USDCHF","USDCHF","Dollar / franc suisse",5],["fx","FX:EURJPY","EURJPY","Euro / yen",3]
-].map(function(x){return {g:x[0],tv:x[1],s:x[2],n:x[3],d:x[4]};});
+].map(function(x){var c=x[1].split("|");return {g:x[0],tv:c[0],alt:c,s:x[2],n:x[3],d:x[4]};});
 var PR=[["","Tout"],["trend","Tendances fortes"],["range","Ranges"],["ext","RSI extrêmes"],["ma200","Sur la MM200"]];
 var st={g:CK.ls("csG")||"all",p:CK.ls("csP")||"",sort:CK.ls("csS")||"adx",dir:-1,ts:0,err:false};
 var D={};
 
 /* Une requête par famille ; si une famille échoue (symbole refusé), on réessaie marché par marché,
    pour qu'un seul symbole refusé ne vide pas tout le tableau. */
-function ask(list){return u.fetchJSON(SCAN,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:JSON.stringify({symbols:{tickers:list.map(function(x){return x.tv;})},columns:COLS})})
-  .then(function(j){var n=0;(j.data||[]).forEach(function(o){var d=o.d||[];if(d[0]==null)return;n++;D[o.s]={c:d[0],ch:d[1],pw:d[2],pm:d[3],rsi:d[4],adx:d[5],s20:d[6],s50:d[7],s200:d[8],atr:d[9]};});return n;});}
+/* Chaque marché a un symbole principal et des équivalents : le premier qui répond devient son symbole */
+function ask(list){var tk=[];list.forEach(function(x){x.alt.forEach(function(t){if(tk.indexOf(t)<0)tk.push(t);});});
+  return u.fetchJSON(SCAN,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:JSON.stringify({symbols:{tickers:tk},columns:COLS})})
+  .then(function(j){var by={},n=0;(j.data||[]).forEach(function(o){if(o.d&&o.d[0]!=null)by[o.s]=o.d;});
+    list.forEach(function(x){for(var i=0;i<x.alt.length;i++){var d=by[x.alt[i]];if(d){x.tv=x.alt[i];n++;D[x.tv]={c:d[0],ch:d[1],pw:d[2],pm:d[3],rsi:d[4],adx:d[5],s20:d[6],s50:d[7],s200:d[8],atr:d[9]};break;}}});return n;});}
 function load(){
   var fams=GR.slice(1).map(function(g){return L.filter(function(x){return x.g===g[0];});});
   return Promise.all(fams.map(function(f){return ask(f).catch(function(e){st.why=String(e&&e.message||e);

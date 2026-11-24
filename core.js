@@ -271,17 +271,24 @@ CK.TVS=TVS;
 var TV_COLS=["close","change","SMA20","SMA50","SMA200","Perf.W","Perf.1M","High.3M","Low.3M","ADX"];
 function calcGSR(){var a=S.mk.XAU,b=S.mk.XAG;if(!a||!b||!a.c||!b.c)return;var ch=(a.ch!=null&&b.ch!=null)?((1+a.ch/100)/(1+b.ch/100)-1)*100:null;S.mk.GSR=Object.assign({},S.mk.GSR,{c:a.c/b.c,ch:ch});}
 /* Or, argent et EUR/USD rafraîchis toutes les 15 s (le reste toutes les 2 min) */
+/* Symboles de secours : si TradingView ne renvoie rien pour le symbole principal, on prend le premier équivalent qui répond
+   (et il devient le symbole du graphique). */
+var TVALT={XAU:["TVC:GOLD","FX_IDC:XAUUSD"],XAG:["TVC:SILVER","FX_IDC:XAGUSD","FOREXCOM:XAGUSD"],EURUSD:["FX_IDC:EURUSD","OANDA:EURUSD"],
+  USOIL:["FX:USOIL","NYMEX:CL1!","TVC:UKOIL"],PLAT:["OANDA:XPTUSD","NYMEX:PL1!"]};
+function cands(k){return [TVS[k]].concat(TVALT[k]||[]);}
+function tickers(keys){var o=[];keys.forEach(function(k){cands(k).forEach(function(t){if(o.indexOf(t)<0)o.push(t);});});return o;}
+function pick(by,k){var c=cands(k);for(var i=0;i<c.length;i++){var d=by[c[i]];if(d&&d[0]!=null){if(i>0)TVS[k]=c[i];return d;}}return null;}
 function loadFast(){
   if(document.hidden)return;
-  return fetchJSON(TV_SCAN,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:JSON.stringify({symbols:{tickers:FAST.map(function(k){return TVS[k];})},columns:["close","change"]})})
-    .then(function(j){(j.data||[]).forEach(function(o){FAST.forEach(function(k){if(TVS[k]===o.s)S.mk[k]=Object.assign({},S.mk[k],{c:o.d[0],ch:o.d[1]});});});calcGSR();paintMacroStrip();}).catch(function(){});
+  return fetchJSON(TV_SCAN,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:JSON.stringify({symbols:{tickers:tickers(FAST)},columns:["close","change"]})})
+    .then(function(j){var by={};(j.data||[]).forEach(function(o){by[o.s]=o.d;});FAST.forEach(function(k){var d=pick(by,k);if(d)S.mk[k]=Object.assign({},S.mk[k],{c:d[0],ch:d[1]});});calcGSR();paintMacroStrip();}).catch(function(){});
 }
 CK.loadFast=loadFast;
 function loadMacro(){
   var keys=Object.keys(TVS).filter(function(k){return k!=="GSR";});
-  return fetchJSON(TV_SCAN,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:JSON.stringify({symbols:{tickers:keys.map(function(k){return TVS[k];})},columns:TV_COLS})})
+  return fetchJSON(TV_SCAN,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:JSON.stringify({symbols:{tickers:tickers(keys)},columns:TV_COLS})})
     .then(function(j){var by={};(j.data||[]).forEach(function(o){by[o.s]=o.d;});
-      keys.forEach(function(k){var d=by[TVS[k]];if(!d)return;S.mk[k]={c:d[0],ch:d[1],s20:d[2],s50:d[3],s200:d[4],pw:d[5],pm:d[6],h3:d[7],l3:d[8],adx:d[9]};});
+      keys.forEach(function(k){var d=pick(by,k);if(!d)return;S.mk[k]={c:d[0],ch:d[1],s20:d[2],s50:d[3],s200:d[4],pw:d[5],pm:d[6],h3:d[7],l3:d[8],adx:d[9]};});
       calcGSR();paintMacroStrip();computeFactors();
     }).catch(function(){computeFactors();});
 }

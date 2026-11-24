@@ -12,20 +12,23 @@ var SCAN="https://scanner.tradingview.com/global/scan";
 var COLS=["close","change","Perf.W","Perf.1M","RSI","ADX","SMA20","SMA50","SMA200","ATR"];
 var GR=[["all","Tous"],["met","Métaux"],["nrj","Énergie"],["agri","Agricoles"],["fx","Forex"]];
 var L=[
-  ["met","OANDA:XAUUSD","XAUUSD","Or",2],["met","OANDA:XAGUSD","XAGUSD","Argent",3],["met","OANDA:XPTUSD","XPTUSD","Platine",2],["met","OANDA:XPDUSD","XPDUSD","Palladium",2],["met","OANDA:XCUUSD","XCUUSD","Cuivre",4],
-  ["nrj","TVC:USOIL","WTI","Pétrole WTI",2],["nrj","TVC:UKOIL","BRENT","Pétrole Brent",2],["nrj","OANDA:NATGASUSD","NATGAS","Gaz naturel",3],
-  ["agri","OANDA:WHEATUSD","WHEAT","Blé",3],["agri","OANDA:CORNUSD","CORN","Maïs",3],["agri","OANDA:SOYBNUSD","SOYBN","Soja",3],["agri","OANDA:SUGARUSD","SUGAR","Sucre",4],
+  ["met","OANDA:XAUUSD|TVC:GOLD","XAUUSD","Or",2],["met","OANDA:XAGUSD|TVC:SILVER|FX_IDC:XAGUSD","XAGUSD","Argent",3],["met","OANDA:XPTUSD|TVC:PLATINUM","XPTUSD","Platine",2],["met","OANDA:XPDUSD|TVC:PALLADIUM","XPDUSD","Palladium",2],["met","OANDA:XCUUSD|COMEX:HG1!|CAPITALCOM:COPPER","XCUUSD","Cuivre",4],
+  ["nrj","FX:USOIL|TVC:USOIL|NYMEX:CL1!","WTI","Pétrole WTI",2],["nrj","FX:UKOIL|TVC:UKOIL|ICEEUR:BRN1!","BRENT","Pétrole Brent",2],["nrj","OANDA:NATGASUSD|NYMEX:NG1!|CAPITALCOM:NATURALGAS","NATGAS","Gaz naturel",3],
+  ["agri","OANDA:WHEATUSD|CBOT:ZW1!|CAPITALCOM:WHEAT","WHEAT","Blé",3],["agri","OANDA:CORNUSD|CBOT:ZC1!|CAPITALCOM:CORN","CORN","Maïs",3],["agri","OANDA:SOYBNUSD|CBOT:ZS1!|CAPITALCOM:SOYBEAN","SOYBN","Soja",3],["agri","OANDA:SUGARUSD|ICEUS:SB1!|CAPITALCOM:SUGAR","SUGAR","Sucre",4],
   ["fx","TVC:DXY","DXY","Indice dollar",3],["fx","FX:EURUSD","EURUSD","Euro / dollar",5],["fx","FX:GBPUSD","GBPUSD","Livre / dollar",5],["fx","FX:USDJPY","USDJPY","Dollar / yen",3],
   ["fx","FX:AUDUSD","AUDUSD","Dollar australien",5],["fx","FX:USDCAD","USDCAD","Dollar / canadien",5],["fx","FX:USDCHF","USDCHF","Dollar / franc suisse",5],["fx","FX:EURJPY","EURJPY","Euro / yen",3]
-].map(function(x){return {g:x[0],tv:x[1],s:x[2],n:x[3],d:x[4]};});
+].map(function(x){var c=x[1].split("|");return {g:x[0],tv:c[0],alt:c,s:x[2],n:x[3],d:x[4]};});
 var PR=[["","Tout"],["trend","Tendances fortes"],["range","Ranges"],["ext","RSI extrêmes"],["ma200","Sur la MM200"]];
 var st={g:CK.ls("csG")||"all",p:CK.ls("csP")||"",sort:CK.ls("csS")||"adx",dir:-1,ts:0,err:false};
 var D={};
 
 /* Une requête par famille ; si une famille échoue (symbole refusé), on réessaie marché par marché,
    pour qu'un seul symbole refusé ne vide pas tout le tableau. */
-function ask(list){return u.fetchJSON(SCAN,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:JSON.stringify({symbols:{tickers:list.map(function(x){return x.tv;})},columns:COLS})})
-  .then(function(j){var n=0;(j.data||[]).forEach(function(o){var d=o.d||[];if(d[0]==null)return;n++;D[o.s]={c:d[0],ch:d[1],pw:d[2],pm:d[3],rsi:d[4],adx:d[5],s20:d[6],s50:d[7],s200:d[8],atr:d[9]};});return n;});}
+/* Chaque marché a un symbole principal et des équivalents : le premier qui répond devient son symbole */
+function ask(list){var tk=[];list.forEach(function(x){x.alt.forEach(function(t){if(tk.indexOf(t)<0)tk.push(t);});});
+  return u.fetchJSON(SCAN,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:JSON.stringify({symbols:{tickers:tk},columns:COLS})})
+  .then(function(j){var by={},n=0;(j.data||[]).forEach(function(o){if(o.d&&o.d[0]!=null)by[o.s]=o.d;});
+    list.forEach(function(x){for(var i=0;i<x.alt.length;i++){var d=by[x.alt[i]];if(d){x.tv=x.alt[i];n++;D[x.tv]={c:d[0],ch:d[1],pw:d[2],pm:d[3],rsi:d[4],adx:d[5],s20:d[6],s50:d[7],s200:d[8],atr:d[9]};break;}}});return n;});}
 function load(){
   var fams=GR.slice(1).map(function(g){return L.filter(function(x){return x.g===g[0];});});
   return Promise.all(fams.map(function(f){return ask(f).catch(function(e){st.why=String(e&&e.message||e);
