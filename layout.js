@@ -27,7 +27,7 @@ function viewOn(id){return VIEWS.some(function(v){return v.id===id;});}
 /* « Mondes » = l'écran de sélection (aucun bloc) ; chaque monde a sa grille */
 var DEFAULTS={
   home:[],
-  or:[{id:"gold",x:0,y:0,w:7,h:62},{id:"goldlv",x:7,y:0,w:5,h:62},{id:"corr",x:0,y:62,w:12,h:52},{id:"goldtv",x:0,y:114,w:12,h:60}],
+  or:[{id:"gold",x:0,y:0,w:7,h:62},{id:"goldlv",x:7,y:0,w:5,h:62},{id:"corr",x:0,y:62,w:12,h:52},{id:"goldtv",x:0,y:114,w:12,h:72}],
   journee:[{id:"day",x:0,y:0,w:12,h:33},{id:"events",x:0,y:33,w:12,h:50}],
   macro:[{id:"map",x:0,y:0,w:12,h:82}],
   screener:[{id:"cscan",x:0,y:0,w:12,h:90}],
@@ -38,7 +38,7 @@ var DEFAULTS={
 };
 /* Où mène « Ouvrir » depuis un bloc */
 var DOOR={cscan:"screener",corr:"or",gold:"or",goldlv:"or",goldtv:"or",day:"journee",map:"macro",events:"journee",screener:"screener",liq:"liq",deriv:"liq",movers:"liq",news:"news"};
-var LAYV="11";
+var LAYV="12";
 var MIN={cscan:[6,40],gold:[4,40],goldlv:[3,40],goldtv:[4,36],veille:[6,40],corr:[3,30],levels:[3,30],opts:[3,30],book:[3,30],net:[6,40],day:[6,28],map:[3,36],events:[2,24],deriv:[3,16],movers:[3,26],liq:[3,40],news:[3,24],screener:[3,36]};
 var NAMES={cscan:"Screener matières premières",gold:"Choppiness Index",goldlv:"Niveaux de l'or",goldtv:"Graphique XAUUSD",veille:"Agent de veille",corr:"Corrélations de l'or",levels:"Niveaux clés",opts:"Options Deribit",book:"Carnet d'ordres agrégé",net:"Connexions",day:"Journée de trading",map:"Signaux",events:"Agenda éco",deriv:"Dérivés",liq:"Liquidations",movers:"Top mouvements",screener:"Screener",news:"News"};
 var grid,all={},view="home",lay=[],editing=false,stacked=false,ph=null;

@@ -1404,3 +1404,9 @@ kbd{font:600 12px var(--mono);padding:1px 6px;border-radius:5px;box-shadow:inset
 /* Logo JDL-Desk : le lingot entier à côté du nom (pas de recadrage) */
 .brand.custom .mark{width:96px;height:44px;overflow:visible}
 .brand.custom .mark img{object-fit:contain;object-position:center}
+
+/* Graphique XAUUSD de l'espace Or : il remplit tout son bloc (le widget TradingView a besoin d'une hauteur réelle) */
+.mod[data-mod="goldtv"] .card{display:flex;flex-direction:column}
+.gd-tv{flex:1;position:relative;min-height:520px;height:auto}
+#goldtvc{position:absolute;inset:0;height:auto!important}
+#goldtvc iframe,#goldtvc>div{width:100%!important;height:100%!important}
